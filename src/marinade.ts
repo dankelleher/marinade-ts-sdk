@@ -1,5 +1,5 @@
 import { MarinadeConfig } from './config/marinade-config'
-import { BN, Provider, Wallet, web3 } from '@project-serum/anchor'
+import { BN, Provider, utils, Wallet, web3 } from '@project-serum/anchor'
 import { MarinadeState } from './marinade-state/marinade-state'
 import { getAssociatedTokenAccountAddress, getOrCreateAssociatedTokenAccount, getParsedStakeAccountInfo } from './util/anchor'
 import { DepositOptions, ErrorMessage, MarinadeResult } from './marinade.types'
@@ -10,6 +10,7 @@ import { MarinadeReferralGlobalState } from './marinade-referral-state/marinade-
 import { assertNotNullAndReturn } from './util/assert'
 import { TicketAccount } from './marinade-state/borsh/ticket-account'
 import { computeMsolAmount, proportionalBN } from './util'
+import { PublicKey } from "@solana/web3.js"
 
 export class Marinade {
   constructor(public readonly config: MarinadeConfig = new MarinadeConfig()) { }
@@ -25,6 +26,7 @@ export class Marinade {
    */
   readonly marinadeFinanceProgram = new MarinadeFinanceProgram(
     this.config.marinadeFinanceProgramId,
+    this.config.proxyProgramId,
     this.provider,
   )
 
@@ -155,24 +157,36 @@ export class Marinade {
   async deposit(amountLamports: BN, options: DepositOptions = {}): Promise<MarinadeResult.Deposit> {
     const feePayer = assertNotNullAndReturn(this.config.publicKey, ErrorMessage.NO_PUBLIC_KEY)
     const mintToOwnerAddress = assertNotNullAndReturn(options.mintToOwnerAddress ?? this.config.publicKey, ErrorMessage.NO_PUBLIC_KEY)
+    const msolTokenAccountAuthority = assertNotNullAndReturn(this.config.msolTokenAccountAuthority, ErrorMessage.NO_PUBLIC_KEY)
     const marinadeState = await this.getMarinadeState()
     const transaction = new web3.Transaction()
 
     const {
       associatedTokenAccountAddress: associatedMSolTokenAccountAddress,
       createAssociateTokenInstruction,
-    } = await getOrCreateAssociatedTokenAccount(this.provider, marinadeState.mSolMintAddress, mintToOwnerAddress, feePayer)
+    } = await getOrCreateAssociatedTokenAccount(this.provider, marinadeState.mSolMintAddress, this.config.msolTokenAccountAuthority, feePayer)
 
     if (createAssociateTokenInstruction) {
       transaction.add(createAssociateTokenInstruction)
     }
 
+    // Get proxy sol account (must exist)
+    const associatedProxySolTokenAccountAddress = await getAssociatedTokenAccountAddress(
+      this.config.proxySolMintAddress,
+      mintToOwnerAddress,
+    )
+
     const program = this.provideReferralOrMainProgram()
     const depositInstruction = await program.depositInstructionBuilder({
       amountLamports,
+      proxyStateAddress: this.config.proxyStateAddress,
       marinadeState,
       transferFrom: feePayer,
       associatedMSolTokenAccountAddress,
+      msolTokenAccountAuthority,
+      proxySolMintAddress: this.config.proxySolMintAddress,
+      proxySolMintAuthority: this.config.proxySolMintAuthority,
+      associatedProxySolTokenAccountAddress,
     })
 
     transaction.add(depositInstruction)
@@ -188,9 +202,25 @@ export class Marinade {
    * Swap your mSOL to get back SOL immediately using the liquidity pool
    *
    * @param {BN} amountLamports - The amount of mSOL exchanged for SOL
+   * @param associatedMSolTokenAccountAddress
    */
   async liquidUnstake(amountLamports: BN, associatedMSolTokenAccountAddress?: web3.PublicKey): Promise<MarinadeResult.LiquidUnstake> {
+    const deriveTokenAccountAddress = (
+      authority: PublicKey,
+    ): [PublicKey, number] => {
+      const seeds = [
+        this.config.proxyStateAddress.toBuffer(),
+        utils.bytes.utf8.encode("msol_account"),
+        authority.toBuffer(),
+      ]
+      return PublicKey.findProgramAddressSync(
+        seeds,
+        this.config.proxyProgramId
+      )
+    }
+
     const ownerAddress = assertNotNullAndReturn(this.config.publicKey, ErrorMessage.NO_PUBLIC_KEY)
+    const [msolTokenAccountAuthority, bump] = deriveTokenAccountAddress(ownerAddress)
     const marinadeState = await this.getMarinadeState()
     const transaction = new web3.Transaction()
 
@@ -204,12 +234,25 @@ export class Marinade {
       }
     }
 
+    // Get proxy sol account (must exist)
+    const associatedProxySolTokenAccountAddress = await getAssociatedTokenAccountAddress(
+      this.config.proxySolMintAddress,
+      ownerAddress,
+    )
+
     const program = this.provideReferralOrMainProgram()
     const liquidUnstakeInstruction = await program.liquidUnstakeInstructionBuilder({
       amountLamports,
+      proxyStateAddress: this.config.proxyStateAddress,
+      proxySolMintAddress: this.config.proxySolMintAddress,
+      proxySolMintAuthority: this.config.proxySolMintAuthority,
+      associatedProxySolTokenAccountAddress,
+      proxyTreasury: this.config.proxyTreasury,
       marinadeState,
       ownerAddress,
       associatedMSolTokenAccountAddress,
+      msolTokenAccountAuthority,
+      bump,
     })
 
     transaction.add(liquidUnstakeInstruction)
@@ -305,7 +348,7 @@ export class Marinade {
     const stakeBalance = new BN(totalBalance - rent)
     const marinadeState = await this.getMarinadeState()
 
-    const { transaction: depositTx, associatedMSolTokenAccountAddress, voterAddress } = 
+    const { transaction: depositTx, associatedMSolTokenAccountAddress, voterAddress } =
       await this.depositStakeAccount(stakeAccountAddress)
 
     let mSolAmountToReceive = computeMsolAmount(stakeBalance, marinadeState)

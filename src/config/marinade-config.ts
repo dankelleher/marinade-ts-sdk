@@ -3,6 +3,12 @@ import { web3 } from '@project-serum/anchor'
 const DEFAULT_PROVIDER_URL = 'https://api.devnet.solana.com'
 
 export class MarinadeConfig {
+  proxyProgramId = new web3.PublicKey('gStMmPPFUGhmyQE8r895q28JVW9JkvDepNu2hTg1f4p')
+  proxyStateAddress = new web3.PublicKey('11111111111111111111111111111111') // TODO - we don't know this yet
+  proxySolMintAddress = new web3.PublicKey('11111111111111111111111111111111') // TODO - we don't know this yet
+  proxySolMintAuthority = new web3.PublicKey('11111111111111111111111111111111') // TODO - we don't know this yet
+  msolTokenAccountAuthority = new web3.PublicKey('11111111111111111111111111111111') // TODO - we can derive this from the mintToOwnerAddress field - see deriveTokenAccountAddress in liquidUnstake
+  proxyTreasury = new web3.PublicKey('11111111111111111111111111111111') // TODO - pass in proxy state  to obtain this
   marinadeFinanceProgramId = new web3.PublicKey('MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD')
   marinadeReferralProgramId = new web3.PublicKey('MR2LqxoSbw831bNy68utpu5n4YqBH3AzDmddkgk9LQv')
 
