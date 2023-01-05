@@ -154,7 +154,7 @@
       "accounts": [
         {
           "name": "proxyState",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -229,6 +229,106 @@
         },
         {
           "name": "marinadeProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "lamports",
+          "type": "u64"
+        },
+        {
+          "name": "getMsolFromAuthorityBump",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "orderUnstake",
+      "accounts": [
+        {
+          "name": "proxyState",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "msolMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proxySolMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proxySolMintAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "burnMsolFrom",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "burnMsolAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proxySolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proxySolTokenAccountAuthority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "newTicketAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proxyTicketAccount",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "proxyTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         }

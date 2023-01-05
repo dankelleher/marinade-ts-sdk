@@ -26,6 +26,12 @@ export namespace MarinadeResult {
     transaction: web3.Transaction
   }
 
+  export interface OrderUnstake {
+    proxyTicketAccount: web3.Keypair
+    newTicketAccount: web3.Keypair
+    transaction: web3.Transaction
+  }
+
   export interface DepositStakeAccount {
     associatedMSolTokenAccountAddress: web3.PublicKey
     voterAddress: web3.PublicKey

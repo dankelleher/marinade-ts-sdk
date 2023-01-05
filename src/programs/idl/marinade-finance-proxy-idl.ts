@@ -160,14 +160,23 @@ export namespace MarinadeFinanceProxyIdl {
     }
     export namespace OrderUnstake {
       export type Accounts = {
-        state: web3.PublicKey
+        proxyState: web3.PublicKey
+        marinadeState: web3.PublicKey
         msolMint: web3.PublicKey
+        proxySolMint: web3.PublicKey
+        proxySolMintAuthority: web3.PublicKey
         burnMsolFrom: web3.PublicKey
         burnMsolAuthority: web3.PublicKey
+        proxySolTokenAccount: web3.PublicKey
+        proxySolTokenAccountAuthority: web3.PublicKey
+        proxyTreasury: web3.PublicKey
         newTicketAccount: web3.PublicKey
+        proxyTicketAccount: web3.PublicKey
         clock: web3.PublicKey
         rent: web3.PublicKey
         tokenProgram: web3.PublicKey
+        marinadeProgram: web3.PublicKey
+        systemProgram: web3.PublicKey
       }
     }
     export namespace Claim {

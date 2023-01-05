@@ -61,6 +61,46 @@ export class MarinadeReferralProgram {
       accounts: await this.liquidUnstakeInstructionAccounts(accountsArgs),
     })
 
+  orderUnstakeInstructionAccounts = async({
+    marinadeState,
+    associatedMSolTokenAccountAddress,
+    msolTokenAccountAuthority,
+    newTicketAccount,
+  }: {
+    marinadeState: MarinadeState,
+    ownerAddress: web3.PublicKey,
+    associatedMSolTokenAccountAddress: web3.PublicKey,
+    msolTokenAccountAuthority: web3.PublicKey,
+    newTicketAccount: web3.PublicKey,
+  }): Promise<MarinadeReferralIdl.Instruction.OrderUnstake.Accounts> => ({
+    state: marinadeState.marinadeStateAddress,
+    msolMint: marinadeState.mSolMintAddress,
+    burnMsolFrom: associatedMSolTokenAccountAddress,
+    burnMsolAuthority: msolTokenAccountAuthority,
+    newTicketAccount,
+    tokenProgram: TOKEN_PROGRAM_ID,
+    rent: SYSVAR_RENT_PUBKEY,
+    clock: SYSVAR_CLOCK_PUBKEY,
+    msolTokenPartnerAccount: (await this.getReferralStateData()).msolTokenPartnerAccount,
+  })
+
+  orderUnstakeInstruction = ({ accounts, amountLamports, bump }: {
+    accounts: MarinadeReferralIdl.Instruction.OrderUnstake.Accounts,
+    amountLamports: BN,
+    bump: number
+  }): web3.TransactionInstruction => this.program.instruction.orderUnstake(
+    amountLamports,
+    bump,
+    { accounts }
+  )
+
+  orderUnstakeInstructionBuilder = async({ amountLamports, bump, ...accountsArgs }: { amountLamports: BN, bump: number } & Parameters<this['orderUnstakeInstructionAccounts']>[0]) =>
+    this.orderUnstakeInstruction({
+      amountLamports,
+      bump,
+      accounts: await this.orderUnstakeInstructionAccounts(accountsArgs),
+    })
+
   depositInstructionAccounts = async({ marinadeState, transferFrom, associatedMSolTokenAccountAddress }: {
     marinadeState: MarinadeState,
     transferFrom: web3.PublicKey,

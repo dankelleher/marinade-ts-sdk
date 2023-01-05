@@ -1,10 +1,11 @@
 import { Marinade, MarinadeConfig, MarinadeUtils, Provider, Wallet, web3 } from '../src'
 import * as TestWorld from './test-world'
 import assert from 'assert'
+import {PublicKey} from "@solana/web3.js"
 
 const MINIMUM_LAMPORTS_BEFORE_TEST = MarinadeUtils.solToLamports(2.5)
 
-describe('Marinade Finance', () => {
+describe.only('Marinade Finance', () => {
   beforeAll(async() => {
     await TestWorld.provideMinimumLamportsBalance(TestWorld.SDK_USER.publicKey, MINIMUM_LAMPORTS_BEFORE_TEST)
   })
@@ -14,6 +15,11 @@ describe('Marinade Finance', () => {
       const config = new MarinadeConfig({
         connection: TestWorld.CONNECTION,
         publicKey: TestWorld.SDK_USER.publicKey,
+        // fixed devnet proxy state address
+        proxyStateAddress: new PublicKey("5n9pFrHb1RLuDuX4eb6Jh89kLpzcFs4R5BFuTJkFcd4q"),
+        proxySolMintAddress: new PublicKey("gso12BFMxXD7RJaTUFfZZyuLW32M1hA9LoLZN7u9Und"),
+        // set as a constant here but actually a PDA derivable from the proxy state address
+        proxySolMintAuthority: new PublicKey("GLnGW9jPiZuJDTsSsGFu1DxNiYEin2cE1VqsvU4Uuve1"),
       })
       const marinade = new Marinade(config)
 
@@ -75,6 +81,24 @@ describe('Marinade Finance', () => {
       const { transaction } = await marinade.liquidUnstake(MarinadeUtils.solToLamports(0.8))
       const transactionSignature = await TestWorld.PROVIDER.send(transaction)
       console.log('Liquid unstake tx:', transactionSignature)
+    })
+  })
+
+  describe('orderUnstake', () => {
+    it('creates a ticket to unstake SOL', async() => {
+      const config = new MarinadeConfig({
+        connection: TestWorld.CONNECTION,
+        publicKey: TestWorld.SDK_USER.publicKey,
+      })
+      const marinade = new Marinade(config)
+
+      const orderUnstakeLamports = MarinadeUtils.solToLamports(0.8)
+      const { transaction, newTicketAccount } = await marinade.orderUnstake(orderUnstakeLamports)
+      const transactionSignature = await TestWorld.PROVIDER.send(transaction)
+      console.log('Order unstake tx:', transactionSignature)
+
+      const ticketAccounts = await marinade.getDelayedUnstakeTickets(TestWorld.SDK_USER.publicKey)
+      assert.strictEqual(ticketAccounts.get(newTicketAccount)?.lamportsAmount, orderUnstakeLamports)
     })
   })
 

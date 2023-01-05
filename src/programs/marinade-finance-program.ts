@@ -82,6 +82,25 @@ export class MarinadeFinanceProgram {
     }))
   }
 
+  async getDelayedUnstakeTicket(ticketAccountAddress: web3.PublicKey): Promise<TicketAccount | null> {
+    const ticketAccountInfo = await this.anchorProvider.connection.getAccountInfo(ticketAccountAddress)
+    if (!ticketAccountInfo) {
+      return null
+    }
+
+    const epochInfo = await getEpochInfo(this.anchorProvider.connection)
+    const { data } = ticketAccountInfo
+    const ticketAccount = deserializeUnchecked(
+      MARINADE_BORSH_SCHEMA,
+      TicketAccount,
+      data.slice(8, data.length),
+    )
+
+    const ticketDateInfo = getTicketDateInfo(epochInfo,ticketAccount.createdEpoch.toNumber(), Date.now())
+
+    return {...ticketAccount,...ticketDateInfo }
+  }
+
   // Estimate due date if a ticket would be created right now
   getEstimatedUnstakeTicketDueDate = async(marinadeState:MarinadeState) => {
     const epochInfo = await getEpochInfo(this.anchorProvider.connection)
@@ -193,6 +212,67 @@ export class MarinadeFinanceProgram {
       amountLamports,
       bump,
       accounts: await this.liquidUnstakeInstructionAccounts(accountsArgs),
+    })
+
+  orderUnstakeInstructionAccounts = async({
+    proxyStateAddress,
+    marinadeState,
+    ownerAddress,
+    associatedMSolTokenAccountAddress,
+    msolTokenAccountAuthority,
+    proxySolMintAddress,
+    proxySolMintAuthority,
+    associatedProxySolTokenAccountAddress,
+    proxyTreasury,
+    newTicketAccount,
+    proxyTicketAccount,
+  }: {
+    proxyStateAddress: web3.PublicKey,
+    marinadeState: MarinadeState,
+    ownerAddress: web3.PublicKey,
+    associatedMSolTokenAccountAddress: web3.PublicKey,
+    msolTokenAccountAuthority: web3.PublicKey,
+    proxySolMintAddress: web3.PublicKey,
+    proxySolMintAuthority: web3.PublicKey,
+    associatedProxySolTokenAccountAddress: web3.PublicKey,
+    proxyTreasury: web3.PublicKey,
+    newTicketAccount: web3.PublicKey,
+    proxyTicketAccount: web3.PublicKey,
+  }): Promise<MarinadeFinanceIdl.Instruction.OrderUnstake.Accounts> => ({
+    proxyState: proxyStateAddress,
+    marinadeState: marinadeState.marinadeStateAddress,
+    msolMint: marinadeState.mSolMintAddress,
+    proxySolMint: proxySolMintAddress,
+    proxySolMintAuthority,
+    burnMsolFrom: associatedMSolTokenAccountAddress,
+    burnMsolAuthority: msolTokenAccountAuthority,
+    proxySolTokenAccount:associatedProxySolTokenAccountAddress,
+    proxySolTokenAccountAuthority: ownerAddress,
+    newTicketAccount,
+    proxyTicketAccount,
+    proxyTreasury,
+    tokenProgram: TOKEN_PROGRAM_ID,
+    rent: SYSVAR_RENT_PUBKEY,
+    clock: SYSVAR_CLOCK_PUBKEY,
+    marinadeProgram: marinadeState.marinadeFinanceProgramId,
+    systemProgram: SYSTEM_PROGRAM_ID,
+  })
+
+  orderUnstakeInstruction = ({ accounts, amountLamports, bump }: {
+    accounts: MarinadeFinanceIdl.Instruction.OrderUnstake.Accounts,
+    amountLamports: BN,
+    bump: number
+  }): web3.TransactionInstruction => this.proxyProgram.instruction.orderUnstake(
+    amountLamports,
+    bump,
+    { accounts }
+  )
+
+  orderUnstakeInstructionBuilder = async({ amountLamports, bump, ...accountsArgs }: { amountLamports: BN, bump: number } & Parameters<this['orderUnstakeInstructionAccounts']>[0]) =>
+    this.orderUnstakeInstruction({
+      amountLamports,
+      bump,
+      accounts: await this.orderUnstakeInstructionAccounts(accountsArgs),
     })
 
   depositInstructionAccounts = async({

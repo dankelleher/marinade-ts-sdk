@@ -40,6 +40,17 @@ export class Marinade {
     this,
   )
 
+  private deriveTokenAccountAddress(): [PublicKey, number] {
+    const seeds = [
+      this.config.proxyStateAddress.toBuffer(),
+      utils.bytes.utf8.encode("msol_account"),
+    ]
+    return PublicKey.findProgramAddressSync(
+      seeds,
+      this.config.proxyProgramId
+    )
+  }
+
   private isReferralProgram(): boolean {
     return this.config.referralCode != null
   }
@@ -205,33 +216,14 @@ export class Marinade {
    * @param associatedMSolTokenAccountAddress
    */
   async liquidUnstake(amountLamports: BN, associatedMSolTokenAccountAddress?: web3.PublicKey): Promise<MarinadeResult.LiquidUnstake> {
-    const deriveTokenAccountAddress = (
-      authority: PublicKey,
-    ): [PublicKey, number] => {
-      const seeds = [
-        this.config.proxyStateAddress.toBuffer(),
-        utils.bytes.utf8.encode("msol_account"),
-        authority.toBuffer(),
-      ]
-      return PublicKey.findProgramAddressSync(
-        seeds,
-        this.config.proxyProgramId
-      )
-    }
-
     const ownerAddress = assertNotNullAndReturn(this.config.publicKey, ErrorMessage.NO_PUBLIC_KEY)
-    const [msolTokenAccountAuthority, bump] = deriveTokenAccountAddress(ownerAddress)
+    const [msolTokenAccountAuthority, bump] = this.deriveTokenAccountAddress()
     const marinadeState = await this.getMarinadeState()
     const transaction = new web3.Transaction()
 
+    // if msol address not passed in, derive it from the msol authority
     if (!associatedMSolTokenAccountAddress) {
-      const associatedTokenAccountInfos = await getOrCreateAssociatedTokenAccount(this.provider, marinadeState.mSolMintAddress, ownerAddress)
-      const createAssociateTokenInstruction = associatedTokenAccountInfos.createAssociateTokenInstruction
-      associatedMSolTokenAccountAddress = associatedTokenAccountInfos.associatedTokenAccountAddress
-
-      if (createAssociateTokenInstruction) {
-        transaction.add(createAssociateTokenInstruction)
-      }
+      associatedMSolTokenAccountAddress = await getAssociatedTokenAccountAddress(marinadeState.mSolMintAddress, this.config.msolTokenAccountAuthority)
     }
 
     // Get proxy sol account (must exist)
@@ -259,6 +251,69 @@ export class Marinade {
 
     return {
       associatedMSolTokenAccountAddress,
+      transaction,
+    }
+  }
+
+  /**
+   * Returns a transaction with the instructions to
+   * Order a delayed unstake of mSOL and create a ticket account to claim later
+   *
+   * @param {BN} amountLamports - The amount of mSOL exchanged for SOL
+   * @param associatedMSolTokenAccountAddress
+   */
+  async orderUnstake(amountLamports: BN, associatedMSolTokenAccountAddress?: web3.PublicKey): Promise<MarinadeResult.OrderUnstake> {
+    const ownerAddress = assertNotNullAndReturn(this.config.publicKey, ErrorMessage.NO_PUBLIC_KEY)
+    const [msolTokenAccountAuthority, bump] = this.deriveTokenAccountAddress()
+    const marinadeState = await this.getMarinadeState()
+    const transaction = new web3.Transaction()
+
+    // if msol address not passed in, derive it from the msol authority
+    if (!associatedMSolTokenAccountAddress) {
+      associatedMSolTokenAccountAddress = await getAssociatedTokenAccountAddress(marinadeState.mSolMintAddress, this.config.msolTokenAccountAuthority)
+    }
+
+    // Get proxy sol account (must exist)
+    const associatedProxySolTokenAccountAddress = await getAssociatedTokenAccountAddress(
+      this.config.proxySolMintAddress,
+      ownerAddress,
+    )
+
+    const newTicketAccountSpace = 32 + 32 + 8 + 8 + 8
+    const newTicketLamports = await this.provider.connection.getMinimumBalanceForRentExemption(newTicketAccountSpace)
+    const newTicketAccount = web3.Keypair.generate()
+    transaction.add(web3.SystemProgram.createAccount({
+      fromPubkey: ownerAddress,
+      newAccountPubkey: newTicketAccount.publicKey,
+      space: newTicketAccountSpace,
+      lamports: newTicketLamports,
+      programId: marinadeState.marinadeFinanceProgramId,
+    }))
+
+    const proxyTicketAccount = web3.Keypair.generate()
+
+    const program = this.provideReferralOrMainProgram()
+    const orderUnstakeInstruction = await program.orderUnstakeInstructionBuilder({
+      amountLamports,
+      proxyStateAddress: this.config.proxyStateAddress,
+      proxySolMintAddress: this.config.proxySolMintAddress,
+      proxySolMintAuthority: this.config.proxySolMintAuthority,
+      proxyTreasury: this.config.proxyTreasury,
+      marinadeState,
+      ownerAddress,
+      associatedMSolTokenAccountAddress,
+      associatedProxySolTokenAccountAddress,
+      msolTokenAccountAuthority,
+      newTicketAccount: newTicketAccount.publicKey,
+      proxyTicketAccount: proxyTicketAccount.publicKey,
+      bump,
+    })
+
+    transaction.add(orderUnstakeInstruction)
+
+    return {
+      newTicketAccount,
+      proxyTicketAccount,
       transaction,
     }
   }
@@ -374,6 +429,10 @@ export class Marinade {
   async getDelayedUnstakeTickets(beneficiary?: web3.PublicKey): Promise<Map<web3.PublicKey, TicketAccount>> {
 
     return this.marinadeFinanceProgram.getDelayedUnstakeTickets(beneficiary)
+  }
+
+  async getDelayedUnstakeTicket(ticketAccountAddress: web3.PublicKey): Promise<TicketAccount | null> {
+    return this.marinadeFinanceProgram.getDelayedUnstakeTicket(ticketAccountAddress)
   }
 
   /**
