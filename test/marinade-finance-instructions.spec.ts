@@ -1,6 +1,6 @@
 import { Marinade, MarinadeConfig, MarinadeUtils, Provider, Wallet, web3 } from '../src'
 import * as TestWorld from './test-world'
-import assert from 'assert'
+import * as assert from 'assert'
 import {PublicKey} from "@solana/web3.js"
 
 const MINIMUM_LAMPORTS_BEFORE_TEST = MarinadeUtils.solToLamports(2.5)
@@ -98,7 +98,7 @@ describe.only('Marinade Finance', () => {
       console.log('Order unstake tx:', transactionSignature)
 
       const ticketAccounts = await marinade.getDelayedUnstakeTickets(TestWorld.SDK_USER.publicKey)
-      assert.strictEqual(ticketAccounts.get(newTicketAccount)?.lamportsAmount, orderUnstakeLamports)
+      assert.strictEqual(ticketAccounts.get(newTicketAccount.publicKey)?.lamportsAmount, orderUnstakeLamports)
     })
   })
 
