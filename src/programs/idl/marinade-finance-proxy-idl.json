@@ -82,6 +82,11 @@
           "isSigner": false
         },
         {
+          "name": "liqPoolMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "liqPoolSolLegPda",
           "isMut": true,
           "isSigner": false
@@ -97,6 +102,11 @@
           "isSigner": false
         },
         {
+          "name": "liqPoolMintAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "reservePda",
           "isMut": true,
           "isSigner": false
@@ -108,6 +118,11 @@
         },
         {
           "name": "mintMsolTo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mintLiqPoolTo",
           "isMut": true,
           "isSigner": false
         },

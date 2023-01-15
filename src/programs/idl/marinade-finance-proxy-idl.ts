@@ -65,12 +65,15 @@ export namespace MarinadeFinanceProxyIdl {
         proxySolMint: web3.PublicKey
         proxySolMintAuthority: web3.PublicKey
         msolMint: web3.PublicKey
+        liqPoolMint: web3.PublicKey
+        liqPoolMintAuthority: web3.PublicKey
         liqPoolSolLegPda: web3.PublicKey
         liqPoolMsolLeg: web3.PublicKey
         liqPoolMsolLegAuthority: web3.PublicKey
         reservePda: web3.PublicKey
         transferFrom: web3.PublicKey
         mintMsolTo: web3.PublicKey
+        mintLiqPoolTo: web3.PublicKey
         mintProxySolTo: web3.PublicKey
         msolMintAuthority: web3.PublicKey
         msolTokenAccountAuthority: web3.PublicKey

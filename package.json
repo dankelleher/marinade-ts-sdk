@@ -1,6 +1,6 @@
 {
   "name": "@sunrisestake/marinade-ts-sdk",
-  "version": "4.0.4-alpha.16",
+  "version": "4.0.4-alpha.17",
   "description": "Marinade SDK for Typescript",
   "main": "dist/src/index.js",
   "repository": {

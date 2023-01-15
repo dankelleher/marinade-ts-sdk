@@ -178,11 +178,21 @@ export class Marinade {
 
     const {
       associatedTokenAccountAddress: associatedMSolTokenAccountAddress,
-      createAssociateTokenInstruction,
+      createAssociateTokenInstruction: createMSolAssociateTokenInstruction,
     } = await getOrCreateAssociatedTokenAccount(this.provider, marinadeState.mSolMintAddress, this.config.msolTokenAccountAuthority, feePayer)
 
-    if (createAssociateTokenInstruction) {
-      transaction.add(createAssociateTokenInstruction)
+    // use the same authority PDA for the msol account and the liquidity pool token account for convenience
+    const {
+      associatedTokenAccountAddress: associatedLiqPoolTokenAccountAddress,
+      createAssociateTokenInstruction: createLiqPoolAssociateTokenInstruction,
+    } = await getOrCreateAssociatedTokenAccount(this.provider, marinadeState.lpMintAddress, this.config.msolTokenAccountAuthority, feePayer)
+
+    if (createMSolAssociateTokenInstruction) {
+      transaction.add(createMSolAssociateTokenInstruction)
+    }
+
+    if (createLiqPoolAssociateTokenInstruction) {
+      transaction.add(createLiqPoolAssociateTokenInstruction)
     }
 
     // Get proxy sol account (must exist)
@@ -201,6 +211,7 @@ export class Marinade {
       msolTokenAccountAuthority,
       proxySolMintAddress: this.config.proxySolMintAddress,
       proxySolMintAuthority: this.config.proxySolMintAuthority,
+      associatedLiqPoolTokenAccountAddress,
       associatedProxySolTokenAccountAddress,
     })
 
