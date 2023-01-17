@@ -16,10 +16,10 @@ describe.only('Marinade Finance', () => {
         connection: TestWorld.CONNECTION,
         publicKey: TestWorld.SDK_USER.publicKey,
         // fixed devnet proxy state address
-        proxyStateAddress: new PublicKey("5n9pFrHb1RLuDuX4eb6Jh89kLpzcFs4R5BFuTJkFcd4q"),
-        proxySolMintAddress: new PublicKey("gso12BFMxXD7RJaTUFfZZyuLW32M1hA9LoLZN7u9Und"),
+        proxyStateAddress: new PublicKey("Jpp29FzyV7rXdVRWFaiE9tBcVCaEMvj16gk87rC3S4z"),
+        proxySolMintAddress: new PublicKey("gso1xA56hacfgTHTF4F7wN5r4jbnJsKh99vR595uybA"),
         // set as a constant here but actually a PDA derivable from the proxy state address
-        proxySolMintAuthority: new PublicKey("GLnGW9jPiZuJDTsSsGFu1DxNiYEin2cE1VqsvU4Uuve1"),
+        proxySolMintAuthority: new PublicKey("Cqp2UCMz3NpL38tkGFx5u7mW7NFdbadNUNMoFKuKGYVi"),
       })
       const marinade = new Marinade(config)
 

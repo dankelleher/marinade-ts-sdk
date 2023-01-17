@@ -3,7 +3,7 @@ import { web3 } from '@project-serum/anchor'
 const DEFAULT_PROVIDER_URL = 'https://api.devnet.solana.com'
 
 export class MarinadeConfig {
-  proxyProgramId = new web3.PublicKey('gStMmPPFUGhmyQE8r895q28JVW9JkvDepNu2hTg1f4p')
+  proxyProgramId = new web3.PublicKey('sunzv8N3A8dRHwUBvxgRDEbWKk8t7yiHR4FLRgFsTX6')
   proxyStateAddress = new web3.PublicKey('11111111111111111111111111111111') // TODO - we don't know this yet
   proxySolMintAddress = new web3.PublicKey('11111111111111111111111111111111') // TODO - we don't know this yet
   proxySolMintAuthority = new web3.PublicKey('11111111111111111111111111111111') // TODO - we don't know this yet
